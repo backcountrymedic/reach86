@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="refresh" content="180">
+    <title>REACH 86 - Fire Camera Dashboard</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; margin: 8px; background-color: #1a1a1a; color: #eee; }
+        h1 { font-size: 18px; margin: 0 0 4px 0; color: #ff6b35; letter-spacing: 1px; }
+        .header {
+            display: flex; align-items: center; gap: 16px;
+            margin-bottom: 6px; border-bottom: 1px solid #444;
+            padding-bottom: 6px; flex-wrap: wrap;
+        }
+        .time-info { font-size: 13px; color: #aaa; }
+        .time-info span { margin-right: 16px; }
+
+        /* View toggle */
+        .view-toggle {
+            margin-left: auto;
+            display: flex;
+            gap: 6px;
+        }
+        .toggle-btn {
+            background: #2a2a2a;
+            border: 1px solid #555;
+            border-radius: 4px;
+            color: #aaa;
+            font-size: 12px;
+            padding: 4px 12px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .toggle-btn.active {
+            background: #ff6b35;
+            border-color: #ff6b35;
+            color: #fff;
+        }
+        .toggle-btn:hover:not(.active) { border-color: #ff6b35; color: #ff6b35; }
+
+        /* Weather bar */
+        .weather-bar {
+            display: flex; align-items: center; gap: 18px;
+            background: #111; border: 1px solid #333; border-radius: 4px;
+            padding: 5px 12px; margin-bottom: 7px; font-size: 13px;
+            flex-wrap: wrap; min-height: 32px;
+        }
+        .wx-station { font-size: 11px; color: #ff6b35; font-weight: bold; letter-spacing: 0.5px; white-space: nowrap; }
+        .wx-item { display: flex; align-items: center; gap: 5px; color: #ccc; white-space: nowrap; }
+        .wx-label { font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
+        .wx-val { font-size: 14px; font-weight: bold; color: #eee; }
+        .wx-val.warn { color: #ff9800; }
+        .wx-val.alert { color: #f44336; }
+        .wx-sky { font-size: 12px; color: #888; }
+        .wx-loading { color: #555; font-size: 12px; font-style: italic; }
+
+        /* Camera grid */
+        #grid-view { display: block; }
+        .grid-container {
+            display: grid; grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(3, auto); gap: 6px;
+        }
+        .grid-item { position: relative; background: #111; border: 1px solid #333; border-radius: 4px; overflow: hidden; }
+        .grid-item a { display: block; position: relative; }
+        .grid-item img { width: 100%; height: auto; display: block; transition: opacity 0.15s ease; }
+        .grid-item a:hover img { opacity: 0.85; }
+        .grid-item a:hover .cam-label { background: rgba(255,107,53,0.8); color: #fff; }
+        .cam-label {
+            position: absolute; bottom: 0; left: 0; right: 0;
+            background: rgba(0,0,0,0.65); font-size: 11px; color: #ddd;
+            padding: 3px 6px; text-align: left; transition: background 0.15s ease;
+        }
+        .open-icon {
+            position: absolute; top: 5px; right: 6px; font-size: 13px;
+            opacity: 0; transition: opacity 0.15s ease; color: #fff;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+        }
+        .grid-item a:hover .open-icon { opacity: 1; }
+
+        
+        .footer { margin-top: 6px; font-size: 11px; color: #555; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>🚁 REACH 86 — Fire Camera Dashboard</h1>
+    <div class="time-info">
+        <span id="current-time">--:--:--</span>
+        <span id="time-since-refresh">Refresh: calculating...</span>
+    </div>
+    <div class="view-toggle">
+        <button class="toggle-btn active" id="btn-grid" onclick="">⊞ Grid</button>
+        <button class="toggle-btn" id="btn-map" onclick="window.open('https://cameras.alertcalifornia.org/?pos=36.0349_-121.4566_11', '_blank')">🗺 Map</button>
+    </div>
+</div>
+
+<div class="weather-bar" id="weather-bar">
+    <span class="wx-station">🌤 NWS FORECAST · FHL</span>
+    <span class="wx-loading" id="wx-status">Loading...</span>
+</div>
+
+<!-- Grid View -->
+<div id="grid-view">
+    <div class="grid-container">
+        <div class="grid-item"><a href="https://cameras.alertcalifornia.org/?pos=36.0349_-121.4566_11&id=Axis-WilliamsHill1" target="_blank"><img src="https://cameras.alertcalifornia.org/public-camera-data/Axis-WilliamsHill1/latest-frame.jpg" alt="Williams Hill 1"><span class="open-icon">&#8599;</span><div class="cam-label">Williams Hill 1</div></a></div>
+        <div class="grid-item"><a href="https://cameras.alertcalifornia.org/?pos=36.0349_-121.4566_11&id=Axis-WilliamsHill2" target="_blank"><img src="https://cameras.alertcalifornia.org/public-camera-data/Axis-WilliamsHill2/latest-frame.jpg" alt="Williams Hill 2"><span class="open-icon">&#8599;</span><div class="cam-label">Williams Hill 2</div></a></div>
+        <div class="grid-item"><a href="https://cameras.alertcalifornia.org/?pos=36.0349_-121.4566_11&id=Axis-MillersRanch1" target="_blank"><img src="https://cameras.alertcalifornia.org/public-camera-data/Axis-MillersRanch1/latest-frame.jpg" alt="Millers Ranch 1"><span class="open-icon">&#8599;</span><div class="cam-label">Millers Ranch 1</div></a></div>
+        <div class="grid-item"><a href="https://cameras.alertcalifornia.org/?pos=36.0349_-121.4566_11&id=Axis-MillersRanch2" target="_blank"><img src="https://cameras.alertcalifornia.org/public-camera-data/Axis-MillersRanch2/latest-frame.jpg" alt="Millers Ranch 2"><span class="open-icon">&#8599;</span><div class="cam-label">Millers Ranch 2</div></a></div>
+        <div class="grid-item"><a href="https://cameras.alertcalifornia.org/?pos=36.0349_-121.4566_11&id=Axis-PineyCreek1" target="_blank"><img src="https://cameras.alertcalifornia.org/public-camera-data/Axis-PineyCreek1/latest-frame.jpg" alt="Piney Creek 1"><span class="open-icon">&#8599;</span><div class="cam-label">Piney Creek 1</div></a></div>
+        <div class="grid-item"><a href="https://cameras.alertcalifornia.org/?pos=36.0349_-121.4566_11&id=Axis-PineyCreek2" target="_blank"><img src="https://cameras.alertcalifornia.org/public-camera-data/Axis-PineyCreek2/latest-frame.jpg" alt="Piney Creek 2"><span class="open-icon">&#8599;</span><div class="cam-label">Piney Creek 2</div></a></div>
+        <div class="grid-item"><a href="https://cameras.alertcalifornia.org/?pos=36.0349_-121.4566_11&id=Axis-SycamoreFlat1" target="_blank"><img src="https://cameras.alertcalifornia.org/public-camera-data/Axis-SycamoreFlat1/latest-frame.jpg" alt="Sycamore Flat 1"><span class="open-icon">&#8599;</span><div class="cam-label">Sycamore Flat 1</div></a></div>
+        <div class="grid-item"><a href="https://cameras.alertcalifornia.org/?pos=36.0349_-121.4566_11&id=Axis-SycamoreFlat2" target="_blank"><img src="https://cameras.alertcalifornia.org/public-camera-data/Axis-SycamoreFlat2/latest-frame.jpg" alt="Sycamore Flat 2"><span class="open-icon">&#8599;</span><div class="cam-label">Sycamore Flat 2</div></a></div>
+        <div class="grid-item"><a href="https://cameras.alertcalifornia.org/?pos=36.0349_-121.4566_11&id=Axis-ChewsRidgeObs1" target="_blank"><img src="https://cameras.alertcalifornia.org/public-camera-data/Axis-ChewsRidgeObs1/latest-frame.jpg" alt="Chews Ridge Obs 1"><span class="open-icon">&#8599;</span><div class="cam-label">Chews Ridge Obs 1</div></a></div>
+        <div class="grid-item"><a href="https://cameras.alertcalifornia.org/?pos=35.6967_-121.1411_13&id=Axis-RockyButte" target="_blank"><img src="https://cameras.alertcalifornia.org/public-camera-data/Axis-RockyButte/latest-frame.jpg" alt="Rocky Butte"><span class="open-icon">&#8599;</span><div class="cam-label">Rocky Butte</div></a></div>
+        <div class="grid-item"><a href="https://cameras.alertcalifornia.org/?pos=35.6967_-121.1411_13&id=Axis-RockyButteTrail1" target="_blank"><img src="https://cameras.alertcalifornia.org/public-camera-data/Axis-RockyButteTrail1/latest-frame.jpg" alt="Rocky Butte Trail 1"><span class="open-icon">&#8599;</span><div class="cam-label">Rocky Butte Trail 1</div></a></div>
+        <div class="grid-item"><a href="https://cameras.alertcalifornia.org/?pos=35.6967_-121.1411_13&id=Axis-RockyButteTrail2" target="_blank"><img src="https://cameras.alertcalifornia.org/public-camera-data/Axis-RockyButteTrail2/latest-frame.jpg" alt="Rocky Butte Trail 2"><span class="open-icon">&#8599;</span><div class="cam-label">Rocky Butte Trail 2</div></a></div>
+    </div>
+</div>
+
+</div>
+
+<div class="footer">Auto-refreshes every 3 minutes &nbsp;|&nbsp; Click any camera to open on AlertCA &nbsp;|&nbsp; Weather: NWS hourly forecast · FHL &nbsp;|&nbsp; Images: AlertCalifornia / UC San Diego &nbsp;|&nbsp; Dashboard: REACH 86</div>
+
+<script>
+// Clock
+function updateTime() {
+    const now = new Date();
+    document.getElementById('current-time').textContent = now.toLocaleTimeString();
+    const last = localStorage.getItem('reach86_last_refresh');
+    if (last) {
+        const diff = Math.floor((now - new Date(last)) / 1000);
+        document.getElementById('time-since-refresh').textContent =
+            'Last refresh: ' + Math.floor(diff/60) + 'm ' + (diff%60) + 's ago';
+    }
+}
+
+// Weather
+function degToCompass(deg) {
+    const dirs = ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
+    return dirs[Math.round(deg / 22.5) % 16];
+}
+
+async function loadWeather() {
+    const bar = document.getElementById('weather-bar');
+    const hdrs = { 'User-Agent': 'REACH86-Dashboard' };
+    try {
+        const ptRes = await fetch('https://api.weather.gov/points/35.9522,-121.2307', { headers: hdrs });
+        if (!ptRes.ok) throw new Error('points failed');
+        const ptData = await ptRes.json();
+        const fxRes = await fetch(ptData.properties.forecastHourly, { headers: hdrs });
+        if (!fxRes.ok) throw new Error('forecast failed');
+        const fxData = await fxRes.json();
+        const p = fxData.properties.periods[0];
+
+        const tempF   = p.temperature;
+        const windStr = p.windSpeed;
+        const windDir = p.windDirection;
+        const sky     = p.shortForecast;
+        const rh      = p.relativeHumidity?.value != null ? Math.round(p.relativeHumidity.value) : null;
+        const windNums = windStr.match(/\d+/g) || [];
+        const windMph  = windNums.length ? Math.max(...windNums.map(Number)) : null;
+        const windClass = windMph >= 25 ? 'alert' : windMph >= 15 ? 'warn' : '';
+        const rhClass   = rh !== null ? (rh <= 15 ? 'alert' : rh <= 25 ? 'warn' : '') : '';
+        const timeLabel = new Date(p.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        bar.innerHTML = `
+            <span class="wx-station">🌤 NWS FORECAST · FHL</span>
+            <div class="wx-item"><span class="wx-label">Temp</span><span class="wx-val">${tempF}°F</span></div>
+            ${rh !== null ? `<div class="wx-item"><span class="wx-label">RH</span><span class="wx-val ${rhClass}">${rh}%</span></div>` : ''}
+            <div class="wx-item"><span class="wx-label">Wind</span><span class="wx-val ${windClass}">${windStr} ${windDir}</span></div>
+            <div class="wx-item"><span class="wx-sky">${sky}</span></div>
+            <span style="margin-left:auto;font-size:10px;color:#444;">valid ${timeLabel} · updated ${new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</span>
+        `;
+    } catch(e) {
+        bar.innerHTML = '<span class="wx-station">NWS FORECAST · FHL</span><span class="wx-loading">Weather unavailable</span>';
+        console.warn('Weather failed:', e);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    localStorage.setItem('reach86_last_refresh', new Date().toISOString());
+    updateTime();
+    setInterval(updateTime, 1000);
+    loadWeather();
+    setInterval(loadWeather, 600000);
+});
+</script>
+
+</body>
+</html>
